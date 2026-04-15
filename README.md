@@ -2,7 +2,7 @@
 
 > **The industrial "BlueOps" platform. Auditing data center cooling architectures to eliminate water waste and advance UN Sustainable Development Goal 6.**
 
-![AquaOps Preview](https://via.placeholder.com/800x400.png?text=AquaOps+Dashboard+Preview) ## 🚀 The Hidden Crisis
+## 🚀 The Hidden Crisis
 When discussing UN SDG 6 (Clean Water and Sanitation), the massive water footprint of heavy industry is often ignored. High-density AI data centers consume millions of gallons of potable water daily just to cool servers. Relying on freshwater for industrial cooling in drought-prone areas is an existential risk.
 
 ## 💡 The Solution
