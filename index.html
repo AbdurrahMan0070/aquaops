@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaOps AI | Industrial Water Optimization</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: { colors: { brand: '#0ea5e9', dark: '#0f172a', card: '#1e293b' } }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropzone { border: 2px dashed #38bdf8; background: rgba(14, 165, 233, 0.05); transition: 0.2s; }
+        .dropzone.dragover { background: rgba(14, 165, 233, 0.2); border-color: #7dd3fc; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="bg-card border-b border-slate-700 p-4 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-brand text-white p-2 rounded-lg font-bold text-xl">💧 AquaOps</div>
+                <span class="text-xs font-mono bg-sky-900 text-sky-300 px-2 py-1 rounded border border-sky-700">UN SDG 6 Edition</span>
+            </div>
+            <nav class="flex gap-2">
+                <button onclick="switchTab('dashboard')" class="tab-btn px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-700 text-slate-300" data-target="dashboard">Dashboard</button>
+                <button onclick="switchTab('map')" class="tab-btn px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-700 text-slate-300" data-target="map">Scarcity Map</button>
+                <button onclick="switchTab('analyzer')" class="tab-btn px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-700 text-slate-300 bg-sky-900/30 text-sky-400 active" data-target="analyzer">AI Analyzer</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto w-full p-6">
+        
+        <div id="dashboard" class="tab-content">
+            <h1 class="text-3xl font-bold mb-2">Global Water Telemetry</h1>
+            <p class="text-slate-400 mb-6">Monitoring industrial water consumption and Water Usage Effectiveness (WUE).</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-card p-5 rounded-xl border border-slate-700">
+                    <p class="text-xs text-slate-400 font-mono uppercase mb-2">Total Gallons Saved</p>
+                    <p class="text-3xl font-bold text-emerald-400">4.2M</p>
+                </div>
+                <div class="bg-card p-5 rounded-xl border border-slate-700">
+                    <p class="text-xs text-slate-400 font-mono uppercase mb-2">Avg Industry WUE</p>
+                    <p class="text-3xl font-bold text-rose-400">1.8 L/kWh</p>
+                </div>
+                <div class="bg-card p-5 rounded-xl border border-slate-700">
+                    <p class="text-xs text-slate-400 font-mono uppercase mb-2">Optimized WUE</p>
+                    <p class="text-3xl font-bold text-sky-400">0.2 L/kWh</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-card p-5 rounded-xl border border-slate-700">
+                    <h2 class="text-lg font-bold mb-4">Cooling Method Impact</h2>
+                    <canvas id="coolingChart" height="200"></canvas>
+                </div>
+                <div class="bg-card p-5 rounded-xl border border-slate-700">
+                    <h2 class="text-lg font-bold mb-4">Why SDG 6 Matters</h2>
+                    <p class="text-slate-300 text-sm">Data centers consume millions of gallons of potable water daily. AquaOps provides instant audits to convert facilities to closed-loop liquid cooling, advancing <b>UN SDG 6</b>.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="map" class="tab-content">
+            <h1 class="text-3xl font-bold mb-2">Global Water Stress Map</h1>
+            <div class="bg-card p-2 rounded-xl border border-slate-700 h-[500px]">
+                <div id="leafletMap" class="w-full h-full rounded-lg"></div>
+            </div>
+        </div>
+
+        <div id="analyzer" class="tab-content active">
+            <h1 class="text-3xl font-bold mb-2">Architecture Analyzer</h1>
+            <p class="text-slate-400 mb-6">Drag and drop your config file for an instant ESG compliance report.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="flex flex-col gap-4">
+                    <div id="dropzone" class="dropzone rounded-xl p-8 text-center cursor-pointer min-h-[150px]">
+                        <p class="text-slate-300 mt-6">📁 Drag & Drop config file here</p>
+                    </div>
+                    <textarea id="configInput" class="w-full h-48 bg-slate-900 border border-slate-700 rounded-xl p-4 text-sm font-mono text-slate-300 focus:border-brand" placeholder="// Paste config..."></textarea>
+                    <button id="analyzeBtn" onclick="analyzeFacility()" class="bg-brand hover:bg-sky-500 text-white font-bold py-3 px-6 rounded-xl w-full">🔍 Analyze Facility</button>
+                    <p id="statusMsg" class="text-center text-sm font-mono text-slate-400 h-4"></p>
+                </div>
+
+                <div class="flex flex-col">
+                    <div id="exportArea" class="bg-card rounded-xl border border-slate-700 p-6 min-h-[420px] relative">
+                        <div id="resultsDefault" class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">Awaiting data...</div>
+                        <div id="resultsData" class="hidden">
+                            <div class="flex justify-between items-start mb-6 border-b border-slate-700 pb-4">
+                                <div><h2 class="text-xl font-bold text-white">AquaOps ESG Report</h2><p class="text-xs text-slate-400">UN SDG 6 Audit</p></div>
+                                <div class="text-right"><p class="text-xs uppercase text-slate-400">WUE Score</p><p id="scoreVal" class="text-4xl font-bold text-brand">--</p></div>
+                            </div>
+                            <div class="mb-4"><span class="bg-sky-900/40 text-sky-400 border border-sky-800 px-3 py-1 rounded-full text-xs">Est. Savings: <span id="savingsVal" class="font-bold">--</span></span></div>
+                            <h3 class="text-sm font-bold text-slate-300 uppercase mb-3 mt-6">Intelligence</h3>
+                            <div id="recommendationsList" class="flex flex-col gap-3"></div>
+                        </div>
+                    </div>
+                    <button id="pdfBtn" onclick="exportPDF()" class="hidden mt-4 bg-slate-800 border border-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl w-full">📄 Export Official PDF</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('bg-sky-900/30', 'text-sky-400'); b.classList.add('text-slate-300'); });
+            document.getElementById(tabId).classList.add('active');
+            const activeBtn = document.querySelector(`[data-target="${tabId}"]`);
+            activeBtn.classList.remove('text-slate-300'); activeBtn.classList.add('bg-sky-900/30', 'text-sky-400');
+            if (tabId === 'map' && !window.mapInitialized) initMap();
+            if (tabId === 'dashboard' && !window.chartInitialized) initChart();
+        }
+
+        const dropzone = document.getElementById('dropzone');
+        const configInput = document.getElementById('configInput');
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = (event) => { configInput.value = event.target.result; };
+                reader.readAsText(e.dataTransfer.files[0]);
+            }
+        });
+
+        // --- The Local "AI" Logic ---
+        function analyzeFacility() {
+            const text = configInput.value.trim().toLowerCase();
+            if(!text) return alert("Please drop a file or paste configuration data first.");
+            
+            const btn = document.getElementById('analyzeBtn');
+            const status = document.getElementById('statusMsg');
+            
+            btn.disabled = true;
+            status.textContent = "Processing via AquaOps Engine...";
+            document.getElementById('resultsDefault').classList.remove('hidden');
+            document.getElementById('resultsData').classList.add('hidden');
+            document.getElementById('pdfBtn').classList.add('hidden');
+
+            // Fake 1.5 second delay to simulate AI processing!
+            setTimeout(() => {
+                let score = 85;
+                let savings = 0;
+                let recs = [];
+
+                if (text.includes("evaporative") || text.includes("open-loop")) {
+                    score -= 25; savings += 450;
+                    recs.push({ priority: "critical", title: "Replace Evaporative Cooling", body: "Your config shows open-loop evaporative cooling. Switching to a closed-loop liquid cooling system will save millions of gallons of fresh water lost to evaporation." });
+                }
+                if (text.includes("arizona") || text.includes("nevada") || text.includes("india")) {
+                    score -= 15;
+                    recs.push({ priority: "high", title: "High Water-Stress Zone Alert", body: "Facility is located in a severe water-stress region. You face high risks of drought-related fines. Immediate transition to zero-water cooling is recommended." });
+                }
+                if (text.includes("potable") || text.includes("freshwater")) {
+                    score -= 10; savings += 120;
+                    recs.push({ priority: "medium", title: "Implement Graywater Recycling", body: "You are using potable (drinking) water for industrial cooling. Route local municipal graywater to your cooling towers to reduce freshwater draw by 60%." });
+                }
+                if (text.includes("ai") || text.includes("gpu") || text.includes("h100")) {
+                    recs.push({ priority: "medium", title: "Direct-to-Chip Liquid Cooling", body: "High-density AI clusters are highly inefficient with air cooling. Use direct-to-chip liquid cooling to improve Water Usage Effectiveness." });
+                }
+                if (recs.length === 0) {
+                    score = 92;
+                    recs.push({ priority: "low", title: "Optimize Chiller Setpoints", body: "Slightly raising the baseline temperature of your server rooms by 2°C can reduce chiller load and save up to 5% on water usage." });
+                }
+
+                // Render Results
+                document.getElementById('scoreVal').textContent = Math.max(10, score);
+                document.getElementById('scoreVal').className = `text-4xl font-bold ${score >= 80 ? 'text-emerald-400' : score >= 50 ? 'text-amber-400' : 'text-rose-500'}`;
+                document.getElementById('savingsVal').textContent = `${savings},000 Gallons/Month`;
+                
+                const recContainer = document.getElementById('recommendationsList');
+                recContainer.innerHTML = '';
+                recs.forEach(r => {
+                    const color = r.priority === 'critical' ? 'text-rose-400 border-rose-900/50 bg-rose-900/10' : 
+                                  r.priority === 'high' ? 'text-amber-400 border-amber-900/50 bg-amber-900/10' : 'text-sky-400 border-sky-900/50 bg-sky-900/10';
+                    recContainer.innerHTML += `<div class="border rounded-lg p-3 ${color}"><p class="font-bold text-sm mb-1">${r.title}</p><p class="text-xs opacity-90">${r.body}</p></div>`;
+                });
+
+                document.getElementById('resultsDefault').classList.add('hidden');
+                document.getElementById('resultsData').classList.remove('hidden');
+                document.getElementById('pdfBtn').classList.remove('hidden');
+                status.textContent = "Analysis Complete.";
+                btn.disabled = false;
+            }, 1500);
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('exportArea');
+            const btn = document.getElementById('pdfBtn');
+            const origText = btn.textContent;
+            btn.textContent = "⏳ Generating...";
+            const origBg = element.style.backgroundColor;
+            element.style.backgroundColor = "#0f172a"; 
+            
+            html2pdf().set({
+                margin: 0.5, filename: 'AquaOps_Water_Audit.pdf', image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            }).from(element).save().then(() => {
+                btn.textContent = origText;
+                element.style.backgroundColor = origBg;
+            });
+        }
+
+        function initChart() {
+            window.chartInitialized = true;
+            new Chart(document.getElementById('coolingChart'), {
+                type: 'bar',
+                data: { labels: ['Open Evaporative', 'Chilled Water', 'Immersion', 'AquaOps Closed-Loop'], datasets: [{ data: [1.8, 1.2, 0.5, 0.1], backgroundColor: ['#f43f5e', '#fbbf24', '#38bdf8', '#10b981'], borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } } }
+            });
+        }
+
+        function initMap() {
+            window.mapInitialized = true;
+            const map = L.map('leafletMap').setView([20, 0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+            L.circle([34.05, -118.24], { color: 'red', fillColor: '#f43f5e', fillOpacity: 0.5, radius: 500000 }).addTo(map).bindPopup("Severe Water Stress: California");
+            L.circle([28.61, 77.20], { color: 'red', fillColor: '#f43f5e', fillOpacity: 0.5, radius: 600000 }).addTo(map).bindPopup("Severe Water Stress: India");
+            L.circle([-33.92, 18.42], { color: 'red', fillColor: '#f43f5e', fillOpacity: 0.5, radius: 400000 }).addTo(map).bindPopup("Severe Water Stress: South Africa");
+        }
+
+        switchTab('analyzer');
+    </script>
+</body>
+</html>

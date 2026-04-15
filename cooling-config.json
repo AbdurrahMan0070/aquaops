@@ -1,0 +1,16 @@
+{
+  "facility_name": "Phoenix Hyperscale DC-01",
+  "location": "Arizona, USA",
+  "facility_type": "AI GPU Data Center",
+  "hardware": {
+    "nodes": 400,
+    "gpu_type": "NVIDIA H100",
+    "power_density": "45kW per rack"
+  },
+  "cooling_infrastructure": {
+    "system_type": "Open-loop evaporative cooling towers",
+    "water_source": "Municipal freshwater (potable)",
+    "chiller_setpoint_celsius": 18,
+    "graywater_recycling": false
+  }
+}
